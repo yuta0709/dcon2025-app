@@ -1,6 +1,6 @@
 "use client";
 import { fetchCareReceivers } from "@/api/care-receivers";
-import { createMeal } from "@/api/meals";
+import { addTranscript, createMeal } from "@/api/meals";
 import { fetchUsers } from "@/api/users";
 import { CareReceiver } from "@/types/care-receiver";
 import { Meal } from "@/types/meal";
@@ -59,30 +59,49 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognitionRef.current = new SpeechRecognition();
-    recognitionRef.current.lang = "ja-JP";
-    recognitionRef.current.continuous = true;
-    recognitionRef.current.interimResults = false;
+    if (!recognitionRef.current) {
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.lang = "ja-JP";
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = false;
 
-    recognitionRef.current.onresult = (event: any) => {
-      const transcript = event.results[event.results.length - 1][0].transcript;
-      setTranscripts((prev) => [...prev, transcript]);
-    };
-
-    recognitionRef.current.onend = () => {
-      if (isRecording) {
-        recognitionRef.current.start();
-      }
-    };
+      recognitionRef.current.onend = () => {
+        if (isRecording) {
+          recognitionRef.current.start();
+        }
+      };
+    }
 
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
+        recognitionRef.current = null;
       }
     };
   }, [isRecording]);
+
+  useEffect(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.onresult = async (event: any) => {
+        const transcript =
+          event.results[event.results.length - 1][0].transcript;
+        if (currentMeal) {
+          try {
+            const updatedMeal = await addTranscript(currentMeal.uuid, {
+              transcript: transcript,
+            });
+            setCurrentMeal(updatedMeal);
+            setTranscripts((prev) => [...prev, transcript]);
+          } catch (error) {
+            console.error("Failed to send transcript:", error);
+            setTranscripts((prev) => [...prev, transcript]);
+          }
+        }
+      };
+    }
+  }, [currentMeal]);
 
   const handleRecord = async () => {
     if (!isRecording) {
