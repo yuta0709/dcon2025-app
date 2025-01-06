@@ -1,7 +1,9 @@
 "use client";
 import { fetchCareReceivers } from "@/api/care-receivers";
+import { createMeal } from "@/api/meals";
 import { fetchUsers } from "@/api/users";
 import { CareReceiver } from "@/types/care-receiver";
+import { Meal } from "@/types/meal";
 import { User } from "@/types/user";
 import {
   Box,
@@ -12,7 +14,6 @@ import {
   Tbody,
   Td,
   Text,
-  Textarea,
   Th,
   Thead,
   Tr,
@@ -29,6 +30,7 @@ const Home = () => {
     useState<string>("");
   const [selectedMealType, setSelectedMealType] = useState<string>("");
   const recognitionRef = useRef<any>(null);
+  const [currentMeal, setCurrentMeal] = useState<Meal | null>(null);
 
   const allSelected =
     selectedUserUuid && selectedCareReceiverUuid && selectedMealType;
@@ -82,10 +84,20 @@ const Home = () => {
     };
   }, [isRecording]);
 
-  const handleRecord = () => {
+  const handleRecord = async () => {
     if (!isRecording) {
-      recognitionRef.current.start();
-      setIsRecording(true);
+      try {
+        const meal = await createMeal({
+          careReceiverUuid: selectedCareReceiverUuid,
+          userUuid: selectedUserUuid,
+          mealType: selectedMealType,
+        });
+        setCurrentMeal(meal);
+        recognitionRef.current.start();
+        setIsRecording(true);
+      } catch (error) {
+        console.error("Failed to create meal:", error);
+      }
     } else {
       recognitionRef.current.stop();
       setIsRecording(false);
@@ -158,30 +170,37 @@ const Home = () => {
         {isRecording ? "録音停止" : "録音開始"}
       </Button>
 
-      <Table variant="simple">
-        <Thead>
-          <Tr>
-            <Th>項目</Th>
-            <Th>割合</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          <Tr>
-            <Td>主食</Td>
-            <Td>8/10</Td>
-          </Tr>
-          <Tr>
-            <Td>副菜</Td>
-            <Td>6/10</Td>
-          </Tr>
-          <Tr>
-            <Td>汁物</Td>
-            <Td>10/10</Td>
-          </Tr>
-        </Tbody>
-      </Table>
+      {currentMeal && (
+        <Table variant="simple">
+          <Thead>
+            <Tr>
+              <Th>項目</Th>
+              <Th>割合</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            <Tr>
+              <Td>主食</Td>
+              <Td>{currentMeal.mainDish ?? "-"}/10</Td>
+            </Tr>
+            <Tr>
+              <Td>副菜</Td>
+              <Td>{currentMeal.sideDish ?? "-"}/10</Td>
+            </Tr>
+            <Tr>
+              <Td>汁物</Td>
+              <Td>{currentMeal.soup ?? "-"}/10</Td>
+            </Tr>
+          </Tbody>
+        </Table>
+      )}
 
-      <Textarea placeholder="特記事項" mt={4} />
+      <Box mt={4} p={4} borderWidth="1px" borderRadius="lg">
+        <Text fontWeight="bold" mb={2}>
+          特記事項
+        </Text>
+        <Text>{currentMeal?.note || "特記事項なし"}</Text>
+      </Box>
       <Box mt={4} mb={4} borderWidth="1px" borderRadius="lg" p={4}>
         <Text fontSize="lg" fontWeight="bold" mb={2}>
           文字起こし履歴
