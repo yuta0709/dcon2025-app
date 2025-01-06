@@ -1,4 +1,8 @@
 "use client";
+import { fetchCareReceivers } from "@/api/care-receivers";
+import { fetchUsers } from "@/api/users";
+import { CareReceiver } from "@/types/care-receiver";
+import { User } from "@/types/user";
 import {
   Box,
   Button,
@@ -18,7 +22,39 @@ import { useState, useRef, useEffect } from "react";
 const Home = () => {
   const [transcripts, setTranscripts] = useState<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [careReceivers, setCareReceivers] = useState<CareReceiver[]>([]);
+  const [selectedUserUuid, setSelectedUserUuid] = useState<string>("");
+  const [selectedCareReceiverUuid, setSelectedCareReceiverUuid] =
+    useState<string>("");
+  const [selectedMealType, setSelectedMealType] = useState<string>("");
   const recognitionRef = useRef<any>(null);
+
+  const allSelected =
+    selectedUserUuid && selectedCareReceiverUuid && selectedMealType;
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const fetchedUsers = await fetchUsers();
+        setUsers(fetchedUsers);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      }
+    };
+
+    const loadCareReceivers = async () => {
+      try {
+        const fetchedCareReceivers = await fetchCareReceivers();
+        setCareReceivers(fetchedCareReceivers);
+      } catch (error) {
+        console.error("Failed to fetch care receivers:", error);
+      }
+    };
+
+    loadUsers();
+    loadCareReceivers();
+  }, []);
 
   useEffect(() => {
     const SpeechRecognition =
@@ -56,27 +92,60 @@ const Home = () => {
     }
   };
 
+  const handleUserChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedUserUuid(event.target.value);
+  };
+
+  const handleCareReceiverChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setSelectedCareReceiverUuid(event.target.value);
+  };
+
+  const handleMealTypeChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setSelectedMealType(event.target.value);
+  };
+
   return (
     <Box p={8}>
       <Heading as="h1" size="xl" mb={8}>
-        介護食事トラッカー
+        食事記録
       </Heading>
 
       <Box display="flex" gap={4} mb={8}>
-        <Select placeholder="介護士を選択">
-          <option value="option1">オプション 1</option>
-          <option value="option2">オプション 2</option>
-          <option value="option3">オプション 3</option>
+        <Select
+          placeholder="介護士を選択"
+          value={selectedUserUuid}
+          onChange={handleUserChange}
+        >
+          {users.map((user) => (
+            <option key={user.uuid} value={user.uuid}>
+              {user.name}
+            </option>
+          ))}
         </Select>
-        <Select placeholder="入居者を選択">
-          <option value="option1">オプション 1</option>
-          <option value="option2">オプション 2</option>
-          <option value="option3">オプション 3</option>
+        <Select
+          placeholder="被介護者を選択"
+          value={selectedCareReceiverUuid}
+          onChange={handleCareReceiverChange}
+        >
+          {careReceivers.map((careReceiver) => (
+            <option key={careReceiver.uuid} value={careReceiver.uuid}>
+              {careReceiver.name}
+            </option>
+          ))}
         </Select>
-        <Select placeholder="食事の種類を選択">
-          ,<option value="option1">オプション 1</option>
-          <option value="option2">オプション 2</option>
-          <option value="option3">オプション 3</option>
+
+        <Select
+          placeholder="食事の種類を選択"
+          value={selectedMealType}
+          onChange={handleMealTypeChange}
+        >
+          <option value="BREAKFAST">朝食</option>
+          <option value="LUNCH">昼食</option>
+          <option value="DINNER">夕食</option>
         </Select>
       </Box>
 
@@ -84,6 +153,7 @@ const Home = () => {
         colorScheme={isRecording ? "red" : "blue"}
         mb={8}
         onClick={handleRecord}
+        disabled={!allSelected}
       >
         {isRecording ? "録音停止" : "録音開始"}
       </Button>
