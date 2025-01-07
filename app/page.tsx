@@ -19,7 +19,7 @@ import {
   Thead,
   Tr,
 } from "@chakra-ui/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
@@ -90,16 +90,20 @@ const Home = () => {
     setSelectedMealType(event.target.value);
   };
 
+  const previousTranscriptRef = useRef("");
+
   useEffect(() => {
-    (async () => {
-      if (currentMeal) {
+    const intervalId = setInterval(async () => {
+      if (currentMeal && transcript !== previousTranscriptRef.current) {
+        console.log(transcript);
         const meal = await addTranscript(currentMeal.uuid, { transcript });
         setCurrentMeal(meal);
+        previousTranscriptRef.current = transcript;
       }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transcript]);
+    }, 2000);
 
+    return () => clearInterval(intervalId);
+  }, [currentMeal, transcript]);
   return (
     <Box p={8}>
       <Heading as="h1" size="xl" mb={8}>
