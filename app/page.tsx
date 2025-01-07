@@ -149,6 +149,15 @@ const Home = () => {
       >
         {listening ? "録音停止" : "録音開始"}
       </Button>
+      <Button
+        colorScheme="gray"
+        mb={8}
+        ml={4}
+        onClick={resetTranscript}
+        disabled={!listening}
+      >
+        文字起こしリセット
+      </Button>
 
       {currentMeal && (
         <Table variant="simple">
