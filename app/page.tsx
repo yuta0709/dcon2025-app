@@ -1,4 +1,5 @@
 "use client";
+import "regenerator-runtime/runtime.js";
 import { fetchCareReceivers } from "@/api/care-receivers";
 import { addTranscript, createMeal } from "@/api/meals";
 import { fetchUsers } from "@/api/users";
@@ -18,18 +19,19 @@ import {
   Thead,
   Tr,
 } from "@chakra-ui/react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
 
 const Home = () => {
-  const [transcripts, setTranscripts] = useState<string[]>([]);
-  const [isRecording, setIsRecording] = useState(false);
+  const { listening, transcript, resetTranscript } = useSpeechRecognition();
   const [users, setUsers] = useState<User[]>([]);
   const [careReceivers, setCareReceivers] = useState<CareReceiver[]>([]);
   const [selectedUserUuid, setSelectedUserUuid] = useState<string>("");
   const [selectedCareReceiverUuid, setSelectedCareReceiverUuid] =
     useState<string>("");
   const [selectedMealType, setSelectedMealType] = useState<string>("");
-  const recognitionRef = useRef<any>(null);
   const [currentMeal, setCurrentMeal] = useState<Meal | null>(null);
 
   const allSelected =
@@ -58,68 +60,17 @@ const Home = () => {
     loadCareReceivers();
   }, []);
 
-  useEffect(() => {
-    if (!recognitionRef.current) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.lang = "ja-JP";
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = false;
-
-      recognitionRef.current.onend = () => {
-        if (isRecording) {
-          recognitionRef.current.start();
-        }
-      };
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
-      }
-    };
-  }, [isRecording]);
-
-  useEffect(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.onresult = async (event: any) => {
-        const transcript =
-          event.results[event.results.length - 1][0].transcript;
-        if (currentMeal) {
-          try {
-            const updatedMeal = await addTranscript(currentMeal.uuid, {
-              transcript: transcript,
-            });
-            setCurrentMeal(updatedMeal);
-            setTranscripts((prev) => [...prev, transcript]);
-          } catch (error) {
-            console.error("Failed to send transcript:", error);
-            setTranscripts((prev) => [...prev, transcript]);
-          }
-        }
-      };
-    }
-  }, [currentMeal]);
-
   const handleRecord = async () => {
-    if (!isRecording) {
-      try {
-        const meal = await createMeal({
-          careReceiverUuid: selectedCareReceiverUuid,
-          userUuid: selectedUserUuid,
-          mealType: selectedMealType,
-        });
-        setCurrentMeal(meal);
-        recognitionRef.current.start();
-        setIsRecording(true);
-      } catch (error) {
-        console.error("Failed to create meal:", error);
-      }
+    if (listening) {
+      SpeechRecognition.stopListening();
     } else {
-      recognitionRef.current.stop();
-      setIsRecording(false);
+      SpeechRecognition.startListening({ continuous: true, language: "ja-JP" });
+      const meal = await createMeal({
+        careReceiverUuid: selectedCareReceiverUuid,
+        userUuid: selectedUserUuid,
+        mealType: selectedMealType,
+      });
+      setCurrentMeal(meal);
     }
   };
 
@@ -138,6 +89,16 @@ const Home = () => {
   ) => {
     setSelectedMealType(event.target.value);
   };
+
+  useEffect(() => {
+    (async () => {
+      if (currentMeal) {
+        const meal = await addTranscript(currentMeal.uuid, { transcript });
+        setCurrentMeal(meal);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcript]);
 
   return (
     <Box p={8}>
@@ -181,12 +142,12 @@ const Home = () => {
       </Box>
 
       <Button
-        colorScheme={isRecording ? "red" : "blue"}
+        colorScheme={listening ? "red" : "blue"}
         mb={8}
         onClick={handleRecord}
         disabled={!allSelected}
       >
-        {isRecording ? "録音停止" : "録音開始"}
+        {listening ? "録音停止" : "録音開始"}
       </Button>
 
       {currentMeal && (
@@ -222,16 +183,9 @@ const Home = () => {
       </Box>
       <Box mt={4} mb={4} borderWidth="1px" borderRadius="lg" p={4}>
         <Text fontSize="lg" fontWeight="bold" mb={2}>
-          文字起こし履歴
+          文字起こし
         </Text>
-        {transcripts.map((transcript, index) => (
-          <Text key={index} mb={2}>
-            {index + 1}. {transcript}
-          </Text>
-        ))}
-        {transcripts.length === 0 && (
-          <Text color="gray.500">履歴はありません</Text>
-        )}
+        <Text>{transcript}</Text>
       </Box>
     </Box>
   );
