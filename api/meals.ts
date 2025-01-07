@@ -7,7 +7,6 @@ interface CreateMealRequest {
 }
 
 export const createMeal = async (data: CreateMealRequest): Promise<Meal> => {
-  console.log(data);
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/meals`, {
     method: "POST",
     headers: {
