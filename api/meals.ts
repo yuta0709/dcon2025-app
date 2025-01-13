@@ -1,4 +1,4 @@
-import { Meal } from "../types/meal";
+import { MealResponse } from "../types/meal";
 
 interface CreateMealRequest {
   careReceiverUuid: string;
@@ -6,7 +6,9 @@ interface CreateMealRequest {
   mealType: string;
 }
 
-export const createMeal = async (data: CreateMealRequest): Promise<Meal> => {
+export const createMeal = async (
+  data: CreateMealRequest
+): Promise<MealResponse> => {
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/meals`, {
     method: "POST",
     headers: {
@@ -29,7 +31,7 @@ interface AddTranscriptRequest {
 export const addTranscript = async (
   mealUuid: string,
   data: AddTranscriptRequest
-): Promise<Meal> => {
+): Promise<MealResponse> => {
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/meals/${mealUuid}/transcripts`,
     {
