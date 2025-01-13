@@ -75,13 +75,13 @@ const Home = () => {
           uuid: "mock-meal-uuid",
           careReceiver: {
             uuid: "mock-uuid",
-            name: "田中太郎",
+            name: "松原光一さん",
           },
           mealType: "BREAKFAST" as const,
-          mainDish: 8,
-          sideDish: 7,
-          soup: 10,
-          note: "昨日はよく眠れなかった",
+          mainDish: 9,
+          sideDish: 2,
+          soup: 0,
+          note: "途中で手が止まってしまった。水分をほとんど摂っていない。",
         };
         previousMealRef.current = mockMeal;
         setCurrentMeal(mockMeal);
