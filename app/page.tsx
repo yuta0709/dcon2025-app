@@ -75,10 +75,10 @@ const Home = () => {
           uuid: "mock-meal-uuid",
           careReceiver: {
             uuid: "mock-uuid",
-            name: "松原光一さん",
+            name: "春日井太郎さん",
           },
-          mealType: "BREAKFAST" as const,
-          mainDish: 9,
+          mealType: "LUNCH" as const,
+          mainDish: 1,
           sideDish: 2,
           soup: 0,
           note: "途中で手が止まってしまった。水分をほとんど摂っていない。",
